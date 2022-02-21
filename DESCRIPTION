@@ -1,7 +1,7 @@
 Package: functiondepends
 Type: Package
 Title: Find Functions and their Dependencies
-Version: 0.2.1
+Version: 0.2.3
 Authors@R: person(
     "Jakub",
     "Sobolewski",
@@ -12,7 +12,6 @@ Description: Find functions in an unstructured directory and explore their depen
     executable code and function definitions only functions are sourced. 
 License: MIT + file LICENSE
 Encoding: UTF-8
-LazyData: true
 Suggests: testthat, covr, knitr, rmarkdown, ggplot2, igraph
 Imports: dplyr (>= 1.0.1), tidyr (>= 1.1.1), stringr (>= 1.4.0), purrr
         (>= 0.3.4), magrittr (>= 1.5), tibble (>= 3.0.3), tidyselect
@@ -21,8 +20,8 @@ RoxygenNote: 7.1.1
 VignetteBuilder: knitr
 Depends: R (>= 2.10)
 NeedsCompilation: no
-Packaged: 2020-10-26 17:12:49 UTC; VC46QY
+Packaged: 2022-02-21 18:45:34 UTC; jakub
 Author: Jakub Sobolewski [aut, cre]
 Maintainer: Jakub Sobolewski <jakupsob@gmail.com>
 Repository: CRAN
-Date/Publication: 2020-11-03 12:30:02 UTC
+Date/Publication: 2022-02-21 19:00:05 UTC

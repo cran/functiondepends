@@ -14,8 +14,8 @@ knitr::opts_chunk$set(
 library(functiondepends)
 
 ## ---- include = FALSE---------------------------------------------------------
-envir <- functiondepends:::envir_example
-functions <- functiondepends:::functions_example
+envir <- functiondepends:::envir
+functions <- functiondepends:::functions
 
 ## ---- eval = FALSE------------------------------------------------------------
 #  # Create environment for loaded functions
@@ -85,7 +85,7 @@ library(igraph)
 
 edges <- dependency %>% 
   select(Source, Target) %>% 
-  filter(!is.na(.))
+  na.omit()
 
 vertices <- unique(c(dependency$Source, dependency$Target))
 vertices <- vertices[!is.na(vertices)]
@@ -107,7 +107,8 @@ plot(
 dependency <- find_dependencies(unique(functions$Function), envir = envir, in_envir = FALSE)
 edges <- dependency %>% 
   select(Source, Target) %>% 
-  filter(!is.na(.))
+  na.omit()
+
 vertices <- unique(c(edges$Source, edges$Target))
 
 g <- graph_from_data_frame(edges)

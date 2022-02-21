@@ -48,11 +48,12 @@ is_assign <- function(expr) {
 #' @param path Character, path to folder
 #' @param envir Environment to source loaded functions into
 #' @param recursive Logical, whether to search files recursively
+#' @param separate_path Logical, whether to split path into hierarchy of directories. Produces
+#'     multiple character columns with 'Level' prefix.
 #'
 #' @export
 #' @return A tibble with character columns indicating path to source files and names of functions
-#'     defined in them. Path elements are split into columns with `Level` prefix,
-#'     name of source file is in `Source` column, name of function is in `Function` column.
+#'     defined in them.
 #'
 #' @examples
 #' \donttest{
@@ -73,48 +74,62 @@ is_assign <- function(expr) {
 #' find_functions(path)
 #' }
 #' @importFrom magrittr %>%
-find_functions <- function(path, envir = .GlobalEnv, recursive = TRUE) {
-  sourceFiles <- list.files(
+#' @importFrom purrr map_dfr map_chr map map_int
+#' @importFrom tibble tibble
+#' @importFrom dplyr mutate select
+#' @importFrom stringr str_remove str_split
+#' @importFrom tidyr separate
+#' @importFrom tidyselect starts_with
+find_functions <- function(path, envir = new.env(), recursive = TRUE, separate_path = FALSE) {
+
+  if (!dir.exists(path)) {
+    message("Directory does not exist")
+    return(invisible(NULL))
+  }
+
+  source_files <- list.files(
     path,
     full.names = TRUE,
     recursive = recursive,
     pattern = ".R$"
   )
 
-  if (length(sourceFiles) == 0) {
-    message("No .R files in directory")
-    return(NULL)
+  if (length(source_files) == 0) {
+    message("No R files in directory")
+    return(invisible(NULL))
   }
 
-  df <- purrr::map_dfr(sourceFiles, ~ {
-    fileParsed <- parse(.x)
-    funcs <- Filter(is_function, fileParsed)
-    funcsNames <- unlist(Map(get_function_name, funcs))
-    if (length(funcsNames) == 0) return(NULL)
-    purrr::map(funcs, eval, envir = envir)
-    tibble::tibble(Path = .x, Function = funcsNames)
+  df <- map_dfr(source_files, function(file) {
+    file_parsed <- parse(file)
+    funcs <- Filter(is_function, file_parsed)
+    funcs_names <- map_chr(funcs, get_function_name)
+    if (length(funcs_names) == 0) return(NULL)
+    map(funcs, eval, envir = envir)
+    tibble(Path = file, Function = funcs_names)
   })
 
   source_name <- basename(df$Path)
   Path <- Source <- Function <- NULL
 
   df <- df %>%
-    dplyr::mutate(
-      Path = stringr::str_remove(Path, "^\\./|^/|^\\\\|^\\."),
-      Path = stringr::str_remove(Path, source_name),
-      Path = stringr::str_remove(Path, "/$|\\\\$")
+    mutate(
+      Path = str_remove(Path, "^\\./|^/|^\\\\|^\\."),
+      Path = str_remove(Path, source_name),
+      Path = str_remove(Path, "/$|\\\\$")
     )
 
-  paths <- stringr::str_split(df$Path, "/|\\\\")
-  maxDepth <- max(vapply(paths, length, integer(1)))
+  if (separate_path) {
+    paths <- str_split(df$Path, "/|\\\\")
+    max_depth <- max(map_int(paths, length))
+    df <- separate(
+      df,
+      "Path",
+      into = paste0("Level", 1:(max_depth)),
+      fill = "right",
+      sep = "[/]|[\\]|[\\\\]"
+    ) %>%
+      select(starts_with("Level"), Function)
+  }
 
-  tidyr::separate(
-    df,
-    "Path",
-    into = paste0("Level", 1:(maxDepth)),
-    fill = "right",
-    sep = "[/]|[\\]|[\\\\]"
-  ) %>%
-    dplyr::mutate(Source = source_name) %>%
-    dplyr::select(tidyselect::starts_with("Level"), Source, Function)
+  df %>% mutate(SourceFile = source_name)
 }

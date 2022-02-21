@@ -1,3 +1,13 @@
+# functiondepends 0.2.3
+
+* Replaced `dplyr::filter(is.na())` calls with `na.omit` to avoid breaking with `dplyr` 1.0.8
+
+# functiondepends 0.2.2
+
+* Changed `find_functions` usage to return non-separated path of source file by default.
+
+* Changed column in tibble returned by `find_functions` from Source to SourceFile
+
 # functiondepends 0.2.1
 
 * CRAN description fixes.

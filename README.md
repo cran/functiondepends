@@ -5,13 +5,13 @@
 
 <!-- badges: start -->
 
-[![Lifecycle:
-maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
-[![Travis build
-status](https://travis-ci.com/WelcomeToMyVirtualHome/functiondepends.svg?branch=master)](https://travis-ci.com/WelcomeToMyVirtualHome/functiondepends)
-[![AppVeyor build
-status](https://ci.appveyor.com/api/projects/status/github/WelcomeToMyVirtualHome/functiondepends?branch=master&svg=true)](https://ci.appveyor.com/project/WelcomeToMyVirtualHome/functiondepends)
-[![codecov](https://codecov.io/gh/WelcomeToMyVirtualHome/functiondepends/branch/master/graph/badge.svg)](https://codecov.io/gh/WelcomeToMyVirtualHome/functiondepends)
+[![R build
+status](https://github.com/jakubsob/functiondepends/workflows/R-CMD-check/badge.svg)](https://github.com/jakubsob/functiondepends/actions)
+[![license](https://img.shields.io/badge/license-mit-lightgrey.svg)](https://choosealicense.com/)
+[![CRAN_Status_Badge](https://www.r-pkg.org/badges/version/functiondepends)](https://cran.r-project.org/package=functiondepends)
+[![CRAN_latest_release_date](https://www.r-pkg.org/badges/last-release/functiondepends)](https://cran.r-project.org/package=functiondepends)
+[![CRAN
+status](https://cranlogs.r-pkg.org/badges/grand-total/functiondepends)](https://CRAN.R-project.org/package=functiondepends)
 <!-- badges: end -->
 
 The goal of functiondepends is to allow for tidy exploration of
@@ -19,20 +19,23 @@ unstructured codebase without evaluation of code.
 
 ## Installation
 
-One can install `functiondepends` from GitHub with:
+One can install `functiondepends` from CRAN:
+
+``` r
+install.packages("functiondepends")
+```
+
+or development version from GitHub:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("WelcomeToMyVirtualHome/functiondepends")
-```
-
-``` r
-library(functiondepends)
+devtools::install_github("jakubsob/functiondepends")
 ```
 
 ## Examples
 
 ``` r
+library(functiondepends)
 # Create environment for loaded functions 
 envir <- new.env()
 # Search recursively current directory
@@ -41,12 +44,14 @@ functions <- find_functions(".", envir = envir, recursive = TRUE)
 
 ``` r
 functions
-#>   Level1              Level2          Function
-#> 1      R find-dependencies.R find_dependencies
-#> 2      R    find-functions.R       is_function
-#> 3      R    find-functions.R get_function_name
-#> 4      R    find-functions.R         is_assign
-#> 5      R    find-functions.R    find_functions
+#> # A tibble: 5 × 3
+#>   Path  Function          SourceFile         
+#>   <chr> <chr>             <chr>              
+#> 1 R     find_dependencies find-dependencies.R
+#> 2 R     is_function       find-functions.R   
+#> 3 R     get_function_name find-functions.R   
+#> 4 R     is_assign         find-functions.R   
+#> 5 R     find_functions    find-functions.R
 ```
 
 Search for dependencies of function `find_functions` within parsed
@@ -55,7 +60,7 @@ functions:
 ``` r
 dependency <- find_dependencies("find_functions", envir = envir, in_envir = TRUE)
 dependency
-#> # A tibble: 2 x 5
+#> # A tibble: 2 × 5
 #>   Source            SourceRep SourceNamespace Target         TargetInDegree
 #>   <chr>                 <int> <chr>           <chr>                   <int>
 #> 1 get_function_name         1 user-defined    find_functions              2
@@ -98,14 +103,15 @@ dependency %>%
   filter(SourceNamespace == "stats") %>% 
   select(Source, SourcePosition, SourceContext) %>% 
   unnest(c(SourcePosition, SourceContext)) 
-#> # A tibble: 5 x 3
+#> # A tibble: 6 × 3
 #>   Source SourcePosition SourceContext                                           
 #>   <chr>           <dbl> <chr>                                                   
-#> 1 df                  6 "    df <- purrr::map_dfr(sourceFiles, ~{"              
-#> 2 df                 15 "    source_name <- basename(df$Path)"                  
-#> 3 df                 17 "    df <- df %>% dplyr::mutate(Path = stringr::str_rem~
-#> 4 df                 18 "    paths <- stringr::str_split(df$Path, \"/|\\\\\\\\\~
-#> 5 df                 20 "    tidyr::separate(df, \"Path\", into = paste0(\"Leve~
+#> 1 df                 10 "    df <- purrr::map_dfr(sourceFiles, function(file) {"
+#> 2 df                 19 "    source_name <- basename(df$Path)"                  
+#> 3 df                 21 "    df <- df %>% dplyr::mutate(Path = stringr::str_rem…
+#> 4 df                 23 "        paths <- stringr::str_split(df$Path, \"/|\\\\\…
+#> 5 df                 25 "        df <- tidyr::separate(df, \"Path\", into = pas…
+#> 6 df                 27 "    df %>% dplyr::mutate(SourceFile = source_name)"
 ```
 
 One can see that indeed `df` is not a call to function `stats::df`.
@@ -146,7 +152,7 @@ dependency <- find_dependencies(unique(functions$Function), envir = envir, in_en
 dependency %>% 
   distinct(Target, TargetInDegree) %>% 
   arrange(-TargetInDegree)
-#> # A tibble: 5 x 2
+#> # A tibble: 5 × 2
 #>   Target            TargetInDegree
 #>   <chr>                      <dbl>
 #> 1 find_functions                 2
@@ -161,7 +167,7 @@ library(igraph)
 
 edges <- dependency %>% 
   select(Source, Target) %>% 
-  filter(!is.na(.))
+  na.omit()
 
 vertices <- unique(c(dependency$Source, dependency$Target))
 vertices <- vertices[!is.na(vertices)]
@@ -180,13 +186,13 @@ plot(
 )
 ```
 
-<img src="man/figures/README-unnamed-chunk-10-1.png" width="100%" />
+<img src="man/figures/README-network_env-1.png" width="100%" />
 
 ``` r
 dependency <- find_dependencies(unique(functions$Function), envir = envir, in_envir = FALSE)
 edges <- dependency %>% 
   select(Source, Target) %>% 
-  filter(!is.na(.))
+  na.omit()
 vertices <- unique(c(edges$Source, edges$Target))
 
 g <- graph_from_data_frame(edges)
